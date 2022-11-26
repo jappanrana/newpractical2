@@ -7,18 +7,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:newpractical2/user_screen.dart';
 import 'package:newpractical2/users.dart';
 
-class AddUser extends StatefulWidget {
-  AddUser({Key? key}) : super(key: key);
+class EditUser extends StatefulWidget {
+  String userId;
+  EditUser({Key? key,required this.userId}) : super(key: key);
 
   @override
-  State<AddUser> createState() => _AddUserState();
+  State<EditUser> createState() => _EditUserState(userId);
 }
 
-enum ScreenCurrentState{
-  SHOW_DEFAULT_STATE
-}
-
-class _AddUserState extends State<AddUser> {
+class _EditUserState extends State<EditUser> {
   //key
   final GlobalKey<ScaffoldMessengerState> _scaffoldKey = GlobalKey();
 
@@ -28,21 +25,19 @@ class _AddUserState extends State<AddUser> {
   //firebase initiate
   final storeUser = FirebaseFirestore.instance.collection("users");
 
-
   //variables
   String imageUrl = " ";
-
-  //to get widgets
-
-  //adapter
+  String userName = " ";
+  String userId;
+  _EditUserState(this.userId);
 
   //functions
   void pickUploadImage(String name) async{
     final image = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      maxHeight: 512,
-      maxWidth: 512,
-      imageQuality: 75
+        source: ImageSource.gallery,
+        maxHeight: 512,
+        maxWidth: 512,
+        imageQuality: 75
     );
     Reference ref = FirebaseStorage.instance.ref().child(name+".jpg");
 
@@ -52,6 +47,29 @@ class _AddUserState extends State<AddUser> {
         imageUrl = value;
       })
     });
+  }
+
+  void readUser() async{
+    final docUser = storeUser.doc(userId);
+    final snapshot = await docUser.get();
+
+    if(snapshot.exists){
+      User user = User.fromJson(snapshot.data()!);
+      setState(() {
+        userName = user.name;
+        imageUrl = user.image;
+        userNameController.text = userName;
+      });
+    }
+  }
+
+  @override
+  void initState(){
+    // TODO: implement initState
+    super.initState();
+    if(userId != ''){
+      readUser();
+    }
   }
 
   @override
@@ -153,8 +171,8 @@ class _AddUserState extends State<AddUser> {
                               name: userNameController.text.toString(),
                               image: imageUrl,
                             );
-                            final docUser = storeUser.doc();
-                            user.id = docUser.id;
+                            final docUser = storeUser.doc(userId);
+                            user.id = userId;
                             final userObjjson = user.toJson();
                             await docUser.set(userObjjson);
                             Navigator.push(context, MaterialPageRoute(builder: (context) => const UserScreen()),);
@@ -178,6 +196,5 @@ class _AddUserState extends State<AddUser> {
         ),
       ),
     );
-
   }
 }
